@@ -1,86 +1,82 @@
 import pandas as pd
 import tensorflow as tf
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-import os
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
 
-# 1. SETUP & CONFIGURATION
-# -----------------------
+# 1. SETUP
 IMG_SIZE = (224, 224)
-BATCH_SIZE = 32
-EPOCHS = 10
-DATA_DIR = 'data' # Folder where your images are
+BATCH_SIZE = 16  # Smaller batch size helps smaller computers
+EPOCHS = 10      # We will train for 10 rounds
+DATA_DIR = 'data'
 CSV_PATH = 'data/rails.csv'
 
-print(f"[INFO] Loading data from {CSV_PATH}...")
+print(f"[INFO] Loading Data from {CSV_PATH}...")
 df = pd.read_csv(CSV_PATH)
 
-# 2. DATA LOADERS (The Product Manager's Pipeline)
-# -----------------------------------------------
-# We use flow_from_dataframe because we have a CSV map
-datagen = ImageDataGenerator(rescale=1./255) # Normalize pixels 0-1
-
-train_df = df[df['data set'] == 'train']
-valid_df = df[df['data set'] == 'valid']
-
-train_gen = datagen.flow_from_dataframe(
-    dataframe=train_df,
-    directory=DATA_DIR,
-    x_col='filepaths', # Check your CSV column name! Might be 'filepaths' or 'image_path'
-    y_col='labels',
-    target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    class_mode='binary', # Defective vs Non-defective
-    shuffle=True
+# 2. DATA AUGMENTATION (Making the model smarter)
+# We twist and flip images so the model learns better
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
 )
 
-valid_gen = datagen.flow_from_dataframe(
-    dataframe=valid_df,
+val_datagen = ImageDataGenerator(rescale=1./255)
+
+# Load Train Data
+train_gen = train_datagen.flow_from_dataframe(
+    df[df['data set'] == 'train'],
     directory=DATA_DIR,
     x_col='filepaths',
     y_col='labels',
     target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
     class_mode='binary',
-    shuffle=False
+    batch_size=BATCH_SIZE,
+    shuffle=True
 )
 
-# 3. BUILD THE "EDGE-OPTIMIZED" MODEL
-# -----------------------------------
-# We don't use ResNet50 (too big). We build a custom sequential model.
-model = Sequential([
-    # Layer 1: Feature Extraction
-    Conv2D(32, (3, 3), activation='relu', input_shape=(224, 224, 3)),
-    MaxPooling2D(2, 2),
-    
-    # Layer 2
-    Conv2D(64, (3, 3), activation='relu'),
-    MaxPooling2D(2, 2),
-    
-    # Layer 3
-    Conv2D(128, (3, 3), activation='relu'),
-    MaxPooling2D(2, 2),
-    
-    # Layer 4: Flatten & Decision
-    Flatten(),
-    Dense(128, activation='relu'),
-    Dropout(0.5), # Prevents overfitting on small datasets
-    Dense(1, activation='sigmoid') # Binary output (0 or 1)
-])
+# Load Validation Data
+valid_gen = val_datagen.flow_from_dataframe(
+    df[df['data set'] == 'valid'],
+    directory=DATA_DIR,
+    x_col='filepaths',
+    y_col='labels',
+    target_size=IMG_SIZE,
+    class_mode='binary',
+    batch_size=BATCH_SIZE
+)
 
-model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# 3. BUILD THE "PRO" MODEL (MobileNetV2)
+# We download a pre-trained brain from Google
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+base_model.trainable = False # Freeze it so we don't break it
+
+# Add our custom layers on top
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(128, activation='relu')(x)
+x = Dropout(0.5)(x)
+predictions = Dense(1, activation='sigmoid')(x)
+
+model = Model(inputs=base_model.input, outputs=predictions)
+
+# Compile
+model.compile(optimizer=Adam(learning_rate=0.0001), loss='binary_crossentropy', metrics=['accuracy'])
 
 # 4. TRAIN
-# --------
-print("[INFO] Starting training...")
+print("[INFO] Starting Transfer Learning with MobileNetV2...")
 history = model.fit(
     train_gen,
     validation_data=valid_gen,
     epochs=EPOCHS
 )
 
-# 5. SAVE THE "BIG" MODEL
-# -----------------------
-model.save('railway_model_full.h5')
-print("[SUCCESS] Model trained and saved as 'railway_model_full.h5'")
+# 5. SAVE
+model.save('railway_model_mobilenet.h5')
+print("[SUCCESS] Saved 'railway_model_mobilenet.h5'")
