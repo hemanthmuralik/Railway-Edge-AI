@@ -14,3 +14,14 @@ The goal is to enable predictive maintenance on India's 68,000km rail network us
 - Python, TensorFlow/Keras
 - TensorFlow Lite (TFLite) for Quantization
 - OpenCV for Preprocessing
+## 📊 Results
+
+### 1. Model Optimization (The "TinyML" Impact)
+By switching from standard Float32 to Int8 quantization, we achieved a **91.7% reduction** in model size, allowing deployment on devices with <16MB Flash memory.
+
+![Quantization Result](output.png)
+
+### 2. Real-World Inference
+The model successfully identifies track faults in 224x224 input images.
+
+![Prediction Example](prediction_result.png)
