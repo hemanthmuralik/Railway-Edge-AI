@@ -1,0 +1,10 @@
+# Ignore the dataset (too big for GitHub)
+data/
+
+# Ignore virtual environment
+venv/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.h5
