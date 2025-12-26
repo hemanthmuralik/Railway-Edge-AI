@@ -1,3 +1,10 @@
+# 🚂 Railway Fault Detection System
+
+[![Medium](https://img.shields.io/badge/Medium-Read%20Article-black?logo=medium)](PUT_YOUR_MEDIUM_LINK_HERE)
+
+> **Featured in "Python in Plain English"**
+> *A real-time Edge AI solution for railway safety using ESP32 and TinyML.*
+> 
 # 🚆 Railway Track Fault Detection System (Edge AI)
 
 A **frugal, real-time railway safety system** that detects track defects such as **cracks and missing fasteners** using **Edge AI**.  
