@@ -1,6 +1,6 @@
 # 🚂 Railway Fault Detection System
 
-[![Medium](https://img.shields.io/badge/Medium-Read%20Article-black?logo=medium)](PUT_YOUR_MEDIUM_LINK_HERE)
+[![Medium](https://img.shields.io/badge/Medium-Read%20Article-black?logo=medium)](https://medium.com/python-in-plain-english/frugal-innovation-building-a-real-time-railway-safety-system-on-a-10-chip-ecff9ba6b878)
 
 > **Featured in "Python in Plain English"**
 > *A real-time Edge AI solution for railway safety using ESP32 and TinyML.*
